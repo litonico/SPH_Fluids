@@ -14,8 +14,11 @@ class ParticleGraphics(object):
 
         for particle in particles:
 
+            # Color based on pressure just for fun
+            color = particle.density*50 if particle.density*50 < 255 else 255
+
             # Area of influence (H)
-            pygame.draw.circle(self.window, (0, 0, 255), (
+            pygame.draw.circle(self.window, (color, 0, 255), (
                 int(particle.position.x*scale), 
                 int(particle.position.y*scale)), 
                 H*scale//2, 1)
@@ -35,7 +38,8 @@ class ParticleGraphics(object):
                 (int((particle.position.x+particle.velocity.x)*scale),
                  (int((particle.position.y+particle.velocity.y)*scale))))
 
-        getch = input()
+        # Enable to step through the sim by entering newlines in the console
+        ### getch = input()
 
         # Draw to screen
         pygame.display.flip() 
