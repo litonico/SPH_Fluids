@@ -1,47 +1,57 @@
 require './src/sph'
 require './lib/thingy'
 
-WINSIZE = 800
+WINSIZE = 500
 
 class SimulationWindow < Thingy
+  attr_reader :simulation
   def initialize
     super WINSIZE, WINSIZE, 16, "Smoothed Particle Hydrodynamics"
-    self.simulation = SPH.new
+    @simulation = SPH.new
+    @scale = 15
+    @oldtime = 0.0
   end
 
-  def update dt
-    simulation.step dt
+  def update time
+    simulation.step 0.1
+    simulation.make_particles_stay_in_bounds @scale
   end
 
-  def draw dt
+  def draw time
     blank
+    s = WINSIZE.div @scale
+
     simulation.particles.each do |particle|
       # Color based on pressure, just for fun
-      # color = if particle.density*50 < 255 then particle.density*50 else 255 end
 
+      pressure_as_color = spectrum particle.density*255, 1.0, -1.5
+      # register_color pressure_as_color
+
+      # text pressure_as_color.to_s, 30, 30, :white
       # Area of influence (H)
-      # screen.ellipse(
-      #   (particle.position.x*scale).to_i,
-      #   (particle.position.y*scale).to_i,
-      #   H*scale//2, H*scale//2, :white)
+        (particle.position.x*s).to_i,
+        (particle.position.y*s).to_i,
+        H*s.div(2),
+        H*s.div(2),
+        pressure_as_color)
 
       # Particles
       ellipse(
-        (particle.position.x*scale).to_i,
-        (particle.position.y*scale).to_i,
-        H*scale.div(2),
-        H*scale.div(2),
+        (particle.position.x*s).to_i,
+        (particle.position.y*s).to_i,
+        5,
+        5,
         :white
       )
 
       # Velocity vectors
       line(
         # start
-        (particle.position.x*scale).to_i,
-        (particle.position.y*scale).to_i,
+        (particle.position.x*s).to_i,
+        (particle.position.y*s).to_i,
         # end
-        ((particle.position.x+particle.velocity.x)*scale).to_i,
-         ((particle.position.y+particle.velocity.y)*scale).to_i,
+        ((particle.position.x+particle.velocity.x)*s).to_i,
+         ((particle.position.y+particle.velocity.y)*s).to_i,
         :red
       )
 

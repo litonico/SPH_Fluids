@@ -40,15 +40,16 @@ class Vec2
 end
 
 class Particle
-  attr_accessor :density, :pressure_force, :viscosity_force
+  attr_accessor :density, :position, :velocity,
+                :pressure_force, :viscosity_force
   def initialize pos
     # Scalars
     @density = 0
 
     # Forces
     @position = pos
-    @velocity = Vec2 0.0, 0.0
-    @pressure_force = Vec2 0.0, 0.0
-    @viscosity_force = Vec2 0.0, 0.0
+    @velocity = Vec2.new 0.0, 0.0
+    @pressure_force = Vec2.new 0.0, 0.0
+    @viscosity_force = Vec2.new 0.0, 0.0
   end
 end

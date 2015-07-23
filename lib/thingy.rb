@@ -5,6 +5,7 @@ class Thingy
   attr_accessor :step, :paused
   attr_accessor :font
   attr_accessor :color, :rgb
+  attr_accessor :rgb_colr, :spectrum
 
   def initialize w, h, c, name
     SDL.init SDL::INIT_VIDEO
@@ -29,6 +30,46 @@ class Thingy
     register_color :yellow,    255, 255, 0
 
     self.paused = self.step = false
+  end
+
+  #TODO (Lito): Formalize!
+  def rgb_color r, g, b
+    screen.format.map_rgb r, g, b
+  end
+
+  def clamp val, bot, top# :nodoc:
+    [[val, top].min, bot].max
+  end
+  ##
+  # "cubehelix" spectrum - converts a degree (0-255) into an RGB
+  # color.
+  #
+  #TODO (Lito): Formalize! Also, shouldn't be called a degree
+  def spectrum degree, start=0.5, rot=-1.5
+    # Scale to 0-1 range
+    degree = degree / 255.0
+    gamma = 1.0 # Intensity gamma correction
+
+    fract = degree**gamma
+    amp = degree
+    angle = 2.0 * Math::PI * (start / 3.0 + rot * degree + 1.0)
+
+    red = fract + amp * (-0.14861*Math::cos(angle) + 1.78277*Math::sin(angle))
+    grn = fract + amp * (-0.29227*Math::cos(angle) - 0.90649*Math::sin(angle))
+    blu = fract + amp * (1.97294 * Math::cos(angle))
+
+    red = red * 255
+    grn = grn * 255
+    blu = blu * 255
+    # [red, grn, blu].each do |color|
+    #   # Scale back to 0-255 range
+    #   color = color * 255
+    #   # Clamp extremes
+    #   color = self.clamp color, 0, 255
+    # end
+
+    #[red, grn, blu]
+    rgb_color red, grn, blu
   end
 
   def register_color name, r, g, b
@@ -86,7 +127,10 @@ class Thingy
   end
 
   def line x1, y1, x2, y2, c
-    screen.draw_line x1, y1, x2, y2, color[c]
+    if color[c]
+      c = color[c]
+    end
+    screen.draw_line x1, y1, x2, y2, c
   end
 
   def text s, x, y, c, f = font
@@ -94,10 +138,16 @@ class Thingy
   end
 
   def ellipse x, y, w, h, c
-    screen.draw_ellipse x, y, w, h, color[c]
+    if color[c]
+      c = color[c]
+    end
+    screen.draw_ellipse x, y, w, h, c
   end
 
   def fill_rect x, y, w, h, c
-    screen.fill_rect x, y, w, h, color[c]
+    if color[c]
+      c = color[c]
+    end
+    screen.fill_rect x, y, w, h, c
   end
 end

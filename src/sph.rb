@@ -1,8 +1,12 @@
 require './src/particle'
 require './src/math'
 
+using ExclusiveBetween
+
+##
 # Constants
-SCALE = 15
+#
+
 NUM_PARTICLES = 150
 MASS = 5 # Particle mass
 DENSITY = 1 # Rest density
@@ -15,10 +19,13 @@ ETA = 1  # Viscosity constant- higher for more viscous
 # A weighting function (kernel) for the contribution of each neighbor
 # to a particle's density. Forms a nice smooth gradient from the center
 # of a particle to H, where it's 0
-##
+#
+
 def W r, h
-  if r.magnitude.xbetween? 0, h
-    315.0/(64 * pi * h**9) * (h**2 - r.magnitude**2)**3
+  len_r = r.magnitude
+
+  if len_r.xbetween? 0, h
+    315.0/(64 * Math::PI * h**9) * (h**2 - len_r**2)**3
   else
     0.0
   end
@@ -27,13 +34,14 @@ end
 ##
 # Gradient ( that is, Vec2(dx, dy) ) of a weighting function for
 # a particle's pressure. This weight function is spiky (not flat or
-# smooth at x=0) so particles close together repel strongly
-##
+# smooth at x=0) so particles close together repel strongly.
+#
+
 def gradient_Wspiky r, h
   len_r = r.magnitude
 
   if len_r.xbetween? 0, h
-    -1.0 * r * (45.0/(Math::PI * h**6 * len_r)) * (h - len_r)**2
+    r.scale(45.0/(Math::PI * h**6 * len_r)).scale((h - len_r)**2).scale(-1.0)
   else
     Vec2.new 0.0, 0.0
   end
@@ -42,27 +50,27 @@ end
 ##
 # The laplacian of a weighting function that tends towards infinity when
 # approching 0 (slows down particles moving faster than their neighbors)
-##
+#
+
 def laplacian_W_viscosity r, h
   len_r = r.magnitude
 
   if len_r.xbetween? 0, h
-    45.0/(2 * pi * h**5) * (1 - len_r/h)
+    45.0/(2 * Math::PI * h**5) * (1 - len_r/h)
   else
     0.0
   end
 end
 
 class SPH
-
+  attr_reader :particles
   def initialize
     # Instantiate particles!
-    particles = []
+    @particles = []
     (0..10).each do |x|
       (0..10).each do |y|
-        xcoord = 
         jitter = rand * 0.1
-        particles << Particle.new(Vec2.new xcoord+1+jitter, y+5)
+        particles << Particle.new(Vec2.new x+1+jitter, y+5)
       end
     end
   end
@@ -100,11 +108,11 @@ class SPH
           density_n = neighbor.density
           # This *should* never happen, but it's good to check,
           # because we're dividing by density later
-          assert(density_n != 0)
+          raise "Particle density is, impossibly, 0" unless density_n != 0
 
           # Pressure derived from the ideal gas law (constant temp)
-          pressure_p = k * (density_p - DENSITY)
-          pressure_n = k * (density_n - DENSITY)
+          pressure_p = K * (density_p - DENSITY)
+          pressure_n = K * (density_n - DENSITY)
 
           # Navier-Stokes equations for pressure and viscosity
           # (ignoring surface tension)
@@ -128,24 +136,32 @@ class SPH
       # 'Eulerian' style momentum:
 
       # Calculate acceleration from forces
-      acceleration = total_force.scale(1.0/particle.density*delta_time + GRAVITY)
+      acceleration = total_force.scale(1.0/particle.density*delta_time)+GRAVITY
 
       # Update position and velocity
       particle.velocity += acceleration.scale delta_time
       particle.position += particle.velocity.scale delta_time
+    end
+  end
 
-      # Make sure particles stay in bounds
-      # TODO: Better boundary conditions (THESE ARE A LAME WORKAROUND)
-      if particle.position.x >= SCALE - 0.01
-        particle.position.x = SCALE - (0.01 + 0.1*rand)
+  ##
+  # The walls nudge particles back in-bounds, plus a little jitter
+  # so nothing gets stuck
+  #
+
+  def make_particles_stay_in_bounds scale
+    # TODO: Better boundary conditions (THESE ARE A LAME WORKAROUND)
+    particles.each do |particle|
+      if particle.position.x >= scale - 0.01
+        particle.position.x = scale - (0.01 + 0.1*rand)
         particle.velocity.x = 0
       elsif particle.position.x < 0.01
         particle.position.x = 0.01 + 0.1*rand
         particle.velocity.x = 0
       end
 
-      if particle.position.y >= SCALE - 0.01
-        particle.position.y = SCALE - (0.01+rand*0.1)
+      if particle.position.y >= scale - 0.01
+        particle.position.y = scale - (0.01+rand*0.1)
         particle.velocity.y = 0
       elsif particle.position.y < 0.01
         particle.position.y = 0.01 + rand*0.1
@@ -153,4 +169,5 @@ class SPH
       end
     end
   end
+
 end
